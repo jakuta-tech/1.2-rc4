@@ -3754,7 +3754,7 @@ int dump_write_csv( void )
 
     fprintf( G.f_txt,
         "\r\nBSSID, First time seen, Last time seen, channel, Speed, "
-        "Privacy, Cipher, Authentication, Power, # beacons, # IV, LAN IP, ID-length, ESSID, Key\r\n" );
+        "Privacy, Cipher, Authentication, WPS, Power, # beacons, # IV, LAN IP, ID-length, ESSID, Key\r\n" );
 
     ap_cur = G.ap_1st;
 
@@ -3838,7 +3838,16 @@ int dump_write_csv( void )
 			}
             if( ap_cur->security & AUTH_OPN   ) fprintf( G.f_txt, " OPN");
         }
-
+	fprintf( G.f_txt, ",");
+	if (ap_cur->wps.state != 0xFF)
+	{
+	  if (ap_cur->wps.ap_setup_locked) // AP setup locked
+	    fprintf( G.f_txt, "Locked");
+	  else
+	    fprintf( G.f_txt, "%d.%d", ap_cur->wps.version >> 4, ap_cur->wps.version & 0xF); // Version
+	}
+	else
+        fprintf( G.f_txt, " ");
         fprintf( G.f_txt, ", %3d, %8ld, %8ld, ",
                  ap_cur->avg_power,
                  ap_cur->nb_bcn,
