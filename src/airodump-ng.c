@@ -1751,6 +1751,10 @@ skip_probe:
 
             if( p[0] == 0x03 )
                 ap_cur->channel = p[2];
+            /* also get the channel from ht information->primary channel */
+            else if (p[0] == 0x3d){
+		ap_cur->channel = p[2];
+            }
 
             p += 2 + p[1];
         }
@@ -3409,13 +3413,13 @@ void dump_print( int ws_row, int ws_col, int if_num )
 		            }
 		        }
 		    }
-		    else
+		    else {
 		        snprintf(strbuf, sizeof(strbuf)-1, " ");
-
-			if (G.maxsize_wps_seen <= strlen(strbuf))
-				G.maxsize_wps_seen = strlen(strbuf);
-			else // write spaces (32)
-				memset( strbuf+strlen(strbuf), 32,  (G.maxsize_wps_seen - strlen(strbuf))  );
+		    }
+		    if (G.maxsize_wps_seen <= strlen(strbuf))
+			G.maxsize_wps_seen = strlen(strbuf);
+		    else // write spaces (32)
+			memset( strbuf+strlen(strbuf), 32,  (G.maxsize_wps_seen - strlen(strbuf))  );
 		}
 		if(ap_cur->essid[0] != 0x00)
 		{
@@ -3838,16 +3842,18 @@ int dump_write_csv( void )
 			}
             if( ap_cur->security & AUTH_OPN   ) fprintf( G.f_txt, " OPN");
         }
+
 	fprintf( G.f_txt, ",");
 	if (ap_cur->wps.state != 0xFF)
-	{
-	  if (ap_cur->wps.ap_setup_locked) // AP setup locked
-	    fprintf( G.f_txt, "Locked");
-	  else
-	    fprintf( G.f_txt, "%d.%d", ap_cur->wps.version >> 4, ap_cur->wps.version & 0xF); // Version
-	}
+	  {
+	    if (ap_cur->wps.ap_setup_locked) // AP setup locked
+	      fprintf( G.f_txt, "Locked");
+	    else
+	      fprintf( G.f_txt, "%d.%d", ap_cur->wps.version >> 4, ap_cur->wps.version & 0xF); // Version
+	  }
 	else
-        fprintf( G.f_txt, " ");
+	  fprintf( G.f_txt, " ");
+	  
         fprintf( G.f_txt, ", %3d, %8ld, %8ld, ",
                  ap_cur->avg_power,
                  ap_cur->nb_bcn,
@@ -5234,7 +5240,7 @@ void sighandler( int signum)
 
 	if( signum == SIGINT || signum == SIGTERM )
 	{
-		reset_term();
+	  //	reset_term();
 		alarm( 1 );
 		G.do_exit = 1;
 		signal( SIGALRM, sighandler );
@@ -5270,7 +5276,7 @@ void sighandler( int signum)
 
 	if( signum == SIGWINCH )
 	{
-		fprintf( stderr, "\33[2J" );
+	  //	fprintf( stderr, "\33[2J" );
 		fflush( stdout );
 	}
 }
@@ -6784,6 +6790,7 @@ usage:
     if (G.show_wps && G.show_manufacturer)
         G.maxsize_essid_seen += G.maxsize_wps_seen;
 
+
     if(G.s_iface != NULL)
     {
         /* initialize cards */
@@ -6913,7 +6920,7 @@ usage:
             }
         }
     }
-
+    
 	/* Drop privileges */
 	if (setuid( getuid() ) == -1) {
 		perror("setuid");
@@ -6995,7 +7002,8 @@ usage:
         waitpid( -1, NULL, WNOHANG );
     }
 
-    fprintf( stderr, "\33[?25l\33[2J\n" );
+    //    fprintf( stderr, "\33[?25l\33[2J\n" );
+
 
     start_time = time( NULL );
     tt1        = time( NULL );
@@ -7015,17 +7023,18 @@ usage:
     strncpy(G.elapsed_time, "0 s", 4 - 1);
     G.elapsed_time[strlen(G.elapsed_time)] = 0;
 
-	/* Create start time string for kismet netxml file */
+
+    /* Create start time string for kismet netxml file */
     G.airodump_start_time = (char *) calloc( 1, 1000 * sizeof(char) );
     strncpy(G.airodump_start_time, ctime( & start_time ), 1000 - 1);
     G.airodump_start_time[strlen(G.airodump_start_time) - 1] = 0; // remove new line
     G.airodump_start_time = (char *) realloc( G.airodump_start_time, sizeof(char) * (strlen(G.airodump_start_time) + 1) );
 
-    if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
-    {
-	perror( "pthread_create failed" );
-	return 1;
-    }
+    //    if( pthread_create( &(G.input_tid), NULL, (void *) input_thread, NULL ) != 0 )
+    //{
+    //	perror( "pthread_create failed" );
+    //	return 1;
+    //}
 
 
     while( 1 )
@@ -7047,13 +7056,16 @@ usage:
 
         if( time( NULL ) - tt2 > 5 )
         {
-        	if( G.sort_by != SORT_BY_NOTHING) {
+
+
+	  if( G.sort_by != SORT_BY_NOTHING) {
 				/* sort the APs by power */
 				pthread_mutex_lock( &(G.mx_sort) );
 				dump_sort();
 				pthread_mutex_unlock( &(G.mx_sort) );
         	}
 
+	  
             /* update the battery state */
             free(G.batt);
             G.batt = NULL;
@@ -7226,7 +7238,7 @@ usage:
                 perror( "select failed" );
 
                 /* Restore terminal */
-                fprintf( stderr, "\33[?25h" );
+		//                fprintf( stderr, "\33[?25h" );
                 fflush( stdout );
 
                 return( 1 );
@@ -7246,6 +7258,7 @@ usage:
 
             update_dataps();
 
+   #if BLA
             /* update the window size */
 
             if( ioctl( 0, TIOCGWINSZ, &(G.ws) ) < 0 )
@@ -7269,6 +7282,8 @@ usage:
 
 		pthread_mutex_unlock( &(G.mx_print) );
 	    }
+    #endif
+	    
             continue;
         }
 
@@ -7304,7 +7319,7 @@ usage:
                             printf("Can't reopen %s\n", ifnam);
 
                             /* Restore terminal */
-                            fprintf( stderr, "\33[?25h" );
+			    //                            fprintf( stderr, "\33[?25h" );
                             fflush( stdout );
 
                             exit(1);
@@ -7447,7 +7462,7 @@ usage:
         }
     }
 
-    fprintf( stderr, "\33[?25h" );
+    //    fprintf( stderr, "\33[?25h" );
     fflush( stdout );
 
     return( 0 );
